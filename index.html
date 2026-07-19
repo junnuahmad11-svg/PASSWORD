@@ -10,44 +10,51 @@
 </head>
 <body>
     <canvas id="particleCanvas"></canvas>
+<!-- ==================== LOADING SCREEN ==================== -->
+<div id="loadingScreen" class="loading-screen">
+    <div class="loading-content">
+        <!-- CREATOR NAME - BIG AND BOLD AT TOP -->
+        <div class="creator-banner">
+            <div class="creator-label">CREATED BY</div>
+            <h1 class="creator-name">MOHAMAD ZUBAIR AHMED</h1>
+            <div class="creator-line"></div>
+            <p class="creator-subtitle">App Developer & Creator</p>
+        </div>
 
-    <!-- ==================== LOADING SCREEN ==================== -->
-    <div id="loadingScreen" class="loading-screen">
-        <div class="loading-content">
-            <div class="loading-logo">
-                <div class="shield-icon">
-                    <svg viewBox="0 0 64 64" width="90" height="90">
-                        <defs>
-                            <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#6C63FF"/>
-                                <stop offset="50%" style="stop-color:#a855f7"/>
-                                <stop offset="100%" style="stop-color:#00D4FF"/>
-                            </linearGradient>
-                            <filter id="glow">
-                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                                <feMerge>
-                                    <feMergeNode in="coloredBlur"/>
-                                    <feMergeNode in="SourceGraphic"/>
-                                </feMerge>
-                            </filter>
-                        </defs>
-                        <path d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4z" 
-                              fill="none" stroke="url(#shieldGrad)" stroke-width="2.5" filter="url(#glow)"/>
-                        <rect x="24" y="26" width="16" height="14" rx="2" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
-                        <path d="M26 26v-4a6 6 0 0 1 12 0v4" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
-                        <circle cx="32" cy="33" r="2" fill="url(#shieldGrad)"/>
-                        <line x1="32" y1="35" x2="32" y2="37" stroke="url(#shieldGrad)" stroke-width="1.5"/>
-                    </svg>
-                </div>
+        <!-- App Logo -->
+        <div class="loading-logo">
+            <div class="shield-icon">
+                <svg viewBox="0 0 64 64" width="90" height="90">
+                    <defs>
+                        <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#6C63FF"/>
+                            <stop offset="50%" style="stop-color:#a855f7"/>
+                            <stop offset="100%" style="stop-color:#00D4FF"/>
+                        </linearGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <path d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4z" 
+                          fill="none" stroke="url(#shieldGrad)" stroke-width="2.5" filter="url(#glow)"/>
+                    <rect x="24" y="26" width="16" height="14" rx="2" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
+                    <path d="M26 26v-4a6 6 0 0 1 12 0v4" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
+                    <circle cx="32" cy="33" r="2" fill="url(#shieldGrad)"/>
+                    <line x1="32" y1="35" x2="32" y2="37" stroke="url(#shieldGrad)" stroke-width="1.5"/>
+                </svg>
             </div>
-            <h1 class="loading-title">XIMI</h1>
-            <p class="loading-subtitle">Password Manager</p>
-            <div class="loading-bar">
-                <div class="loading-bar-fill"></div>
-            </div>
-            <p class="loading-credit">Created by <span class="credit-name">Mohamad Zubair Ahmed</span></p>
+        </div>
+        <h1 class="loading-title">XIMI</h1>
+        <p class="loading-subtitle">Password Manager</p>
+        <div class="loading-bar">
+            <div class="loading-bar-fill"></div>
         </div>
     </div>
+</div>
 
     <!-- ==================== SETUP SCREEN ==================== -->
     <div id="setupScreen" class="screen hidden">
