@@ -29,7 +29,7 @@
             const ls = document.getElementById('loadingScreen');
             ls.style.opacity = '0'; ls.style.transition = 'opacity 0.5s ease';
             setTimeout(() => { ls.classList.add('hidden'); initApp(); }, 500);
-        }, 2200);
+        }, 3500);
     });
 
     function initApp() {
