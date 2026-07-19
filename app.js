@@ -1,138 +1,121 @@
 /**
- * XIMI Password Manager - Main Application
- * Handles UI, state management, and user interactions
+ * XIMI Password Manager — Main Application
+ * Created by Mohamad Zubair Ahmed
  */
-
 (function () {
     'use strict';
 
-    // ========================================
-    // STATE
-    // ========================================
+    // ==================== STATE ====================
     let state = {
-        masterPassword: null, // Only kept in memory during session
+        masterPassword: null,
         entries: [],
         unlockedEntries: new Set(),
         editingEntryId: null,
         deleteEntryId: null,
         unlockEntryId: null,
+        unlockAction: null, // 'view', 'edit', 'delete', 'copy'
         autoLockTime: 30,
         autoLockTimer: null,
-        inactivityTimer: null,
         inactivityCountdown: null,
         loginAttempts: 0,
         maxLoginAttempts: 5,
         lockoutUntil: null
     };
 
-    // ========================================
-    // INITIALIZATION
-    // ========================================
+    // ==================== INIT ====================
     window.addEventListener('DOMContentLoaded', () => {
         initParticles();
-
-        // Show loading screen then determine which screen to show
         setTimeout(() => {
-            const loadingScreen = document.getElementById('loadingScreen');
-            loadingScreen.style.opacity = '0';
-            loadingScreen.style.transition = 'opacity 0.5s ease';
-            
-            setTimeout(() => {
-                loadingScreen.classList.add('hidden');
-                initApp();
-            }, 500);
+            const ls = document.getElementById('loadingScreen');
+            ls.style.opacity = '0'; ls.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => { ls.classList.add('hidden'); initApp(); }, 500);
         }, 2200);
     });
 
     function initApp() {
         const masterData = localStorage.getItem('ximi_master');
-        
-        if (masterData) {
-            showScreen('loginScreen');
-        } else {
-            showScreen('setupScreen');
-        }
-
-        // Setup password strength checker for setup screen
-        const setupPw = document.getElementById('setupPassword');
-        if (setupPw) {
-            setupPw.addEventListener('input', () => {
-                updateStrengthIndicator('setupStrength', setupPw.value);
-            });
-        }
-
-        // Load settings
-        const savedAutoLock = localStorage.getItem('ximi_autolock');
-        if (savedAutoLock) {
-            state.autoLockTime = parseInt(savedAutoLock);
-            const select = document.getElementById('autoLockTime');
-            if (select) select.value = state.autoLockTime;
-        }
-
-        // Check lockout
+        showScreen(masterData ? 'loginScreen' : 'setupScreen');
+        const sp = document.getElementById('setupPassword');
+        if (sp) sp.addEventListener('input', () => updateStrengthIndicator('setupStrength', sp.value));
+        const savedAL = localStorage.getItem('ximi_autolock');
+        if (savedAL) { state.autoLockTime = parseInt(savedAL); const s = document.getElementById('autoLockTime'); if (s) s.value = state.autoLockTime; }
         const lockout = localStorage.getItem('ximi_lockout');
-        if (lockout) {
-            const lockoutTime = parseInt(lockout);
-            if (Date.now() < lockoutTime) {
-                state.lockoutUntil = lockoutTime;
-            } else {
-                localStorage.removeItem('ximi_lockout');
-                state.loginAttempts = 0;
-            }
-        }
+        if (lockout) { const t = parseInt(lockout); if (Date.now() < t) state.lockoutUntil = t; else { localStorage.removeItem('ximi_lockout'); state.loginAttempts = 0; } }
     }
 
-    function showScreen(screenId) {
+    function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        const screen = document.getElementById(screenId);
-        if (screen) screen.classList.remove('hidden');
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
     }
 
-    // ========================================
-    // MASTER PASSWORD SETUP
-    // ========================================
+    // ==================== SIDEBAR ====================
+    window.toggleSidebar = function () {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('hidden');
+    };
+
+    window.closeSidebar = function () {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.add('hidden');
+    };
+
+    window.navigateTo = function (view) {
+        closeSidebar();
+        // Update active nav
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        const views = ['dashboardView', 'generatorView', 'strengthCheckerView', 'aboutView'];
+        views.forEach(v => { const el = document.getElementById(v); if (el) el.classList.add('hidden'); });
+
+        switch (view) {
+            case 'dashboard':
+                document.getElementById('dashboardView').classList.remove('hidden');
+                break;
+            case 'addPassword':
+                document.getElementById('dashboardView').classList.remove('hidden');
+                showAddModal();
+                break;
+            case 'generator':
+                document.getElementById('generatorView').classList.remove('hidden');
+                break;
+            case 'strengthChecker':
+                document.getElementById('strengthCheckerView').classList.remove('hidden');
+                break;
+            case 'backup':
+                document.getElementById('dashboardView').classList.remove('hidden');
+                showBackupModal();
+                break;
+            case 'settings':
+                document.getElementById('dashboardView').classList.remove('hidden');
+                showSettingsModal();
+                break;
+            case 'about':
+                document.getElementById('aboutView').classList.remove('hidden');
+                break;
+        }
+    };
+
+    // ==================== MASTER PASSWORD SETUP ====================
     window.createMasterPassword = function () {
-        const password = document.getElementById('setupPassword').value;
-        const confirm = document.getElementById('setupPasswordConfirm').value;
+        const pw = document.getElementById('setupPassword').value;
+        const cf = document.getElementById('setupPasswordConfirm').value;
         const hint = document.getElementById('setupHint').value.trim();
-        const errorEl = document.getElementById('setupError');
+        const err = document.getElementById('setupError');
 
-        // Validations
-        if (!password) {
-            showError(errorEl, 'Please enter a master password');
-            return;
-        }
-        if (password.length < 8) {
-            showError(errorEl, 'Master password must be at least 8 characters');
-            return;
-        }
-        if (password !== confirm) {
-            showError(errorEl, 'Passwords do not match');
-            return;
-        }
+        if (!pw) { showError(err, 'Please enter a master password'); return; }
+        if (pw.length < 8) { showError(err, 'Master password must be at least 8 characters'); return; }
+        if (pw !== cf) { showError(err, 'Passwords do not match'); return; }
+        if (XIMICrypto.checkPasswordStrength(pw).label === 'Weak') { showError(err, 'Please choose a stronger password'); return; }
 
-        const strength = XIMICrypto.checkPasswordStrength(password);
-        if (strength.label === 'Weak') {
-            showError(errorEl, 'Please choose a stronger master password');
-            return;
-        }
-
-        // Hash and store master password
-        const { hash, salt } = XIMICrypto.hashMasterPassword(password);
-        
-        const masterData = {
-            hash: hash,
-            salt: salt,
-            hint: hint || '',
-            createdAt: new Date().toISOString()
-        };
-
-        localStorage.setItem('ximi_master', JSON.stringify(masterData));
+        const { hash, salt } = XIMICrypto.hashMasterPassword(pw);
+        localStorage.setItem('ximi_master', JSON.stringify({ hash, salt, hint: hint || '', createdAt: new Date().toISOString() }));
         localStorage.setItem('ximi_entries', JSON.stringify([]));
-
-        state.masterPassword = password;
+        state.masterPassword = pw;
         state.entries = [];
-
         showToast('Vault created successfully!', 'success');
         showScreen('mainApp');
         renderEntries();
@@ -140,181 +123,102 @@
         updateStats();
     };
 
-    // ========================================
-    // LOGIN / UNLOCK VAULT
-    // ========================================
+    // ==================== LOGIN ====================
     window.unlockVault = function () {
-        const password = document.getElementById('loginPassword').value;
-        const errorEl = document.getElementById('loginError');
-        const attemptsEl = document.getElementById('loginAttempts');
+        const pw = document.getElementById('loginPassword').value;
+        const err = document.getElementById('loginError');
+        const att = document.getElementById('loginAttempts');
 
-        if (!password) {
-            showError(errorEl, 'Please enter your master password');
-            return;
-        }
-
-        // Check lockout
+        if (!pw) { showError(err, 'Please enter your master password'); return; }
         if (state.lockoutUntil && Date.now() < state.lockoutUntil) {
-            const remaining = Math.ceil((state.lockoutUntil - Date.now()) / 1000);
-            showError(errorEl, `Too many attempts. Try again in ${remaining} seconds.`);
+            showError(err, `Too many attempts. Try again in ${Math.ceil((state.lockoutUntil - Date.now()) / 1000)}s.`);
             return;
         }
 
-        const masterData = JSON.parse(localStorage.getItem('ximi_master'));
-        
-        if (!masterData) {
-            showError(errorEl, 'No vault found. Please set up first.');
-            return;
-        }
+        const md = JSON.parse(localStorage.getItem('ximi_master'));
+        if (!md) { showError(err, 'No vault found.'); return; }
 
-        const isValid = XIMICrypto.verifyMasterPassword(password, masterData.hash, masterData.salt);
-
-        if (isValid) {
-            state.masterPassword = password;
-            state.loginAttempts = 0;
+        if (XIMICrypto.verifyMasterPassword(pw, md.hash, md.salt)) {
+            state.masterPassword = pw; state.loginAttempts = 0;
             localStorage.removeItem('ximi_lockout');
-            
-            // Load entries
-            loadEntries();
-            
-            showScreen('mainApp');
-            renderEntries();
-            startActivityMonitor();
-            updateStats();
-
-            // Clear login field
+            loadEntries(); showScreen('mainApp'); renderEntries();
+            startActivityMonitor(); updateStats();
             document.getElementById('loginPassword').value = '';
-            errorEl.classList.add('hidden');
-            attemptsEl.classList.add('hidden');
-
-            showToast('Vault unlocked successfully!', 'success');
+            err.classList.add('hidden'); att.classList.add('hidden');
+            showToast('Vault unlocked!', 'success');
         } else {
             state.loginAttempts++;
-            const remaining = state.maxLoginAttempts - state.loginAttempts;
-            
-            if (remaining <= 0) {
-                // Lock out for 60 seconds
+            const rem = state.maxLoginAttempts - state.loginAttempts;
+            if (rem <= 0) {
                 state.lockoutUntil = Date.now() + 60000;
                 localStorage.setItem('ximi_lockout', state.lockoutUntil);
-                showError(errorEl, 'Too many failed attempts. Locked for 60 seconds.');
+                showError(err, 'Too many attempts. Locked for 60 seconds.');
                 state.loginAttempts = 0;
-            } else {
-                showError(errorEl, 'Wrong master password');
-                attemptsEl.textContent = `${remaining} attempts remaining`;
-                attemptsEl.classList.remove('hidden');
-            }
+            } else { showError(err, 'Wrong master password'); att.textContent = `${rem} attempts remaining`; att.classList.remove('hidden'); }
         }
     };
 
     window.showHint = function () {
-        const masterData = JSON.parse(localStorage.getItem('ximi_master'));
-        const hintEl = document.getElementById('loginHint');
-
-        if (masterData && masterData.hint) {
-            hintEl.textContent = '💡 Hint: ' + masterData.hint;
-            hintEl.classList.remove('hidden');
-        } else {
-            hintEl.textContent = 'No hint was set.';
-            hintEl.classList.remove('hidden');
-        }
+        const md = JSON.parse(localStorage.getItem('ximi_master'));
+        const el = document.getElementById('loginHint');
+        el.textContent = md && md.hint ? '💡 Hint: ' + md.hint : 'No hint was set.';
+        el.classList.remove('hidden');
     };
 
     window.lockVault = function () {
-        state.masterPassword = null;
-        state.unlockedEntries.clear();
-        stopActivityMonitor();
-        
-        showScreen('loginScreen');
+        state.masterPassword = null; state.unlockedEntries.clear();
+        stopActivityMonitor(); showScreen('loginScreen');
         showToast('Vault locked', 'info');
     };
 
-    // ========================================
-    // ENTRIES MANAGEMENT
-    // ========================================
+    // ==================== ENTRIES ====================
     function loadEntries() {
-        try {
-            const data = localStorage.getItem('ximi_entries');
-            state.entries = data ? JSON.parse(data) : [];
-        } catch (e) {
-            console.error('Error loading entries:', e);
-            state.entries = [];
-        }
+        try { state.entries = JSON.parse(localStorage.getItem('ximi_entries') || '[]'); } catch { state.entries = []; }
     }
 
-    function saveEntries() {
-        localStorage.setItem('ximi_entries', JSON.stringify(state.entries));
-        updateStats();
-    }
+    function saveEntries() { localStorage.setItem('ximi_entries', JSON.stringify(state.entries)); updateStats(); }
+    function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 9); }
 
-    function generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
-    }
-
-    // ========================================
-    // ADD / EDIT MODAL
-    // ========================================
+    // ==================== ADD/EDIT MODAL ====================
     window.showAddModal = function () {
         state.editingEntryId = null;
         document.getElementById('modalTitle').textContent = 'Add New Password';
-        document.getElementById('saveEntryBtn').innerHTML = `
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                <polyline points="17 21 17 13 7 13 7 21"/>
-                <polyline points="7 3 7 8 15 8"/>
-            </svg>
-            Save Entry
-        `;
-        
-        // Clear form
-        document.getElementById('entryName').value = '';
-        document.getElementById('entryUsername').value = '';
-        document.getElementById('entryPassword').value = '';
-        document.getElementById('entryUrl').value = '';
-        document.getElementById('entryNotes').value = '';
+        document.getElementById('saveEntryBtn').innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Entry';
+        ['entryName', 'entryUsername', 'entryPassword', 'entryUrl', 'entryNotes'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('entryCategory').value = 'other';
-        
         clearStrengthIndicator('modalStrength');
-        
-        // Hide generator
-        const genPanel = document.getElementById('generatorPanel');
-        if (genPanel) genPanel.classList.add('hidden');
-
+        const gp = document.getElementById('generatorPanel'); if (gp) gp.classList.add('hidden');
         document.getElementById('addModal').classList.remove('hidden');
         document.getElementById('entryName').focus();
     };
 
     window.editEntry = function (id) {
+        // Require master password for editing
+        state.unlockAction = 'edit';
+        state.unlockEntryId = id;
+        document.getElementById('unlockPassword').value = '';
+        document.getElementById('unlockError').classList.add('hidden');
+        document.getElementById('unlockDesc').textContent = 'Enter your master password to edit this entry.';
+        document.getElementById('unlockModal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('unlockPassword').focus(), 100);
+    };
+
+    function performEdit(id) {
         const entry = state.entries.find(e => e.id === id);
         if (!entry) return;
-
         state.editingEntryId = id;
         document.getElementById('modalTitle').textContent = 'Edit Password';
-        document.getElementById('saveEntryBtn').innerHTML = `
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                <polyline points="17 21 17 13 7 13 7 21"/>
-                <polyline points="7 3 7 8 15 8"/>
-            </svg>
-            Update Entry
-        `;
-
+        document.getElementById('saveEntryBtn').innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Update Entry';
         document.getElementById('entryName').value = entry.name;
         document.getElementById('entryUsername').value = entry.username;
         document.getElementById('entryUrl').value = entry.url || '';
         document.getElementById('entryNotes').value = entry.notes || '';
         document.getElementById('entryCategory').value = entry.category || 'other';
-
-        // Decrypt password for editing
-        const decrypted = XIMICrypto.decrypt(entry.encryptedPassword, state.masterPassword);
-        if (decrypted) {
-            document.getElementById('entryPassword').value = decrypted;
-            updateModalStrength();
-        } else {
-            document.getElementById('entryPassword').value = '';
-        }
-
+        const dec = XIMICrypto.decrypt(entry.encryptedPassword, state.masterPassword);
+        document.getElementById('entryPassword').value = dec || '';
+        if (dec) updateModalStrength();
         document.getElementById('addModal').classList.remove('hidden');
-    };
+    }
 
     window.saveEntry = function () {
         const name = document.getElementById('entryName').value.trim();
@@ -324,263 +228,246 @@
         const notes = document.getElementById('entryNotes').value.trim();
         const category = document.getElementById('entryCategory').value;
 
-        if (!name) {
-            showToast('Please enter a service name', 'error');
-            document.getElementById('entryName').focus();
-            return;
-        }
-        if (!username) {
-            showToast('Please enter a username or email', 'error');
-            document.getElementById('entryUsername').focus();
-            return;
-        }
-        if (!password) {
-            showToast('Please enter or generate a password', 'error');
-            document.getElementById('entryPassword').focus();
-            return;
-        }
+        if (!name) { showToast('Enter a service name', 'error'); return; }
+        if (!username) { showToast('Enter a username/email', 'error'); return; }
+        if (!password) { showToast('Enter or generate a password', 'error'); return; }
 
-        // Encrypt the password
-        const encryptedPassword = XIMICrypto.encrypt(password, state.masterPassword);
-        if (!encryptedPassword) {
-            showToast('Encryption error. Please try again.', 'error');
-            return;
-        }
-
+        const enc = XIMICrypto.encrypt(password, state.masterPassword);
+        if (!enc) { showToast('Encryption error', 'error'); return; }
         const strength = XIMICrypto.checkPasswordStrength(password);
 
         if (state.editingEntryId) {
-            // Update existing entry
-            const index = state.entries.findIndex(e => e.id === state.editingEntryId);
-            if (index !== -1) {
-                state.entries[index] = {
-                    ...state.entries[index],
-                    name,
-                    username,
-                    encryptedPassword,
-                    url,
-                    notes,
-                    category,
-                    strength: strength.label,
-                    updatedAt: new Date().toISOString()
-                };
-                showToast('Password updated successfully!', 'success');
+            const i = state.entries.findIndex(e => e.id === state.editingEntryId);
+            if (i !== -1) {
+                state.entries[i] = { ...state.entries[i], name, username, encryptedPassword: enc, url, notes, category, strength: strength.label, updatedAt: new Date().toISOString() };
+                showToast('Password updated!', 'success');
             }
         } else {
-            // Create new entry
-            const entry = {
-                id: generateId(),
-                name,
-                username,
-                encryptedPassword,
-                url,
-                notes,
-                category,
-                strength: strength.label,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-            state.entries.push(entry);
-            showToast('Password saved successfully!', 'success');
+            state.entries.push({ id: generateId(), name, username, encryptedPassword: enc, url, notes, category, strength: strength.label, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+            showToast('Password saved!', 'success');
         }
-
-        saveEntries();
-        renderEntries();
-        closeAddModal();
+        saveEntries(); renderEntries(); closeAddModal();
     };
 
-    window.closeAddModal = function () {
-        document.getElementById('addModal').classList.add('hidden');
-        state.editingEntryId = null;
-    };
+    window.closeAddModal = function () { document.getElementById('addModal').classList.add('hidden'); state.editingEntryId = null; };
 
-    // ========================================
-    // DELETE ENTRY
-    // ========================================
+    // ==================== DELETE ====================
     window.showDeleteConfirm = function (id) {
+        // Require master password for deleting
+        state.unlockAction = 'delete';
+        state.unlockEntryId = id;
+        document.getElementById('unlockPassword').value = '';
+        document.getElementById('unlockError').classList.add('hidden');
+        document.getElementById('unlockDesc').textContent = 'Enter your master password to delete this entry.';
+        document.getElementById('unlockModal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('unlockPassword').focus(), 100);
+    };
+
+    function performDeleteConfirm(id) {
         const entry = state.entries.find(e => e.id === id);
         if (!entry) return;
-
         state.deleteEntryId = id;
         document.getElementById('deleteEntryName').textContent = entry.name;
         document.getElementById('deleteModal').classList.remove('hidden');
-    };
+    }
 
     window.confirmDelete = function () {
         if (state.deleteEntryId) {
             state.entries = state.entries.filter(e => e.id !== state.deleteEntryId);
             state.unlockedEntries.delete(state.deleteEntryId);
-            saveEntries();
-            renderEntries();
-            closeDeleteModal();
+            saveEntries(); renderEntries(); closeDeleteModal();
             showToast('Password deleted', 'info');
         }
     };
 
-    window.closeDeleteModal = function () {
-        document.getElementById('deleteModal').classList.add('hidden');
-        state.deleteEntryId = null;
-    };
+    window.closeDeleteModal = function () { document.getElementById('deleteModal').classList.add('hidden'); state.deleteEntryId = null; };
 
-    // ========================================
-    // UNLOCK / LOCK PASSWORDS
-    // ========================================
+    // ==================== UNLOCK / LOCK ====================
     window.requestUnlock = function (id) {
+        state.unlockAction = 'view';
         state.unlockEntryId = id;
         document.getElementById('unlockPassword').value = '';
         document.getElementById('unlockError').classList.add('hidden');
+        document.getElementById('unlockDesc').textContent = 'Enter your master password to view this password.';
         document.getElementById('unlockModal').classList.remove('hidden');
-        
-        setTimeout(() => {
-            document.getElementById('unlockPassword').focus();
-        }, 100);
+        setTimeout(() => document.getElementById('unlockPassword').focus(), 100);
     };
 
     window.confirmUnlock = function () {
-        const password = document.getElementById('unlockPassword').value;
-        const errorEl = document.getElementById('unlockError');
+        const pw = document.getElementById('unlockPassword').value;
+        const err = document.getElementById('unlockError');
+        if (!pw) { showError(err, 'Enter your master password'); return; }
 
-        if (!password) {
-            showError(errorEl, 'Please enter your master password');
+        const md = JSON.parse(localStorage.getItem('ximi_master'));
+        if (!XIMICrypto.verifyMasterPassword(pw, md.hash, md.salt)) {
+            showError(err, 'Wrong master password');
             return;
         }
 
-        const masterData = JSON.parse(localStorage.getItem('ximi_master'));
-        const isValid = XIMICrypto.verifyMasterPassword(password, masterData.hash, masterData.salt);
+        const action = state.unlockAction;
+        const id = state.unlockEntryId;
+        closeUnlockModal();
 
-        if (isValid) {
-            state.unlockedEntries.add(state.unlockEntryId);
-            closeUnlockModal();
-            renderEntries();
-            showToast('Password unlocked', 'success');
-            resetInactivityTimer();
-        } else {
-            showError(errorEl, 'Wrong master password');
+        switch (action) {
+            case 'view':
+                state.unlockedEntries.add(id);
+                renderEntries();
+                showToast('Password unlocked', 'success');
+                resetInactivityTimer();
+                break;
+            case 'edit':
+                performEdit(id);
+                break;
+            case 'delete':
+                performDeleteConfirm(id);
+                break;
+            case 'copy':
+                performCopy(id);
+                break;
         }
     };
 
-    window.lockEntry = function (id) {
-        state.unlockedEntries.delete(id);
-        renderEntries();
-    };
+    window.lockEntry = function (id) { state.unlockedEntries.delete(id); renderEntries(); };
 
-    window.lockAllPasswords = function () {
-        state.unlockedEntries.clear();
-        renderEntries();
-        showToast('All passwords locked', 'info');
-    };
+    window.lockAllPasswords = function () { state.unlockedEntries.clear(); renderEntries(); showToast('All passwords locked', 'info'); };
 
     window.closeUnlockModal = function () {
         document.getElementById('unlockModal').classList.add('hidden');
-        state.unlockEntryId = null;
+        state.unlockEntryId = null; state.unlockAction = null;
     };
 
-    // ========================================
-    // COPY PASSWORD
-    // ========================================
+    // ==================== COPY ====================
     window.copyPassword = function (id) {
-        const entry = state.entries.find(e => e.id === id);
-        if (!entry) return;
-
         if (!state.unlockedEntries.has(id)) {
-            showToast('Unlock the password first to copy', 'warning');
+            // Need master password to copy
+            state.unlockAction = 'copy';
+            state.unlockEntryId = id;
+            document.getElementById('unlockPassword').value = '';
+            document.getElementById('unlockError').classList.add('hidden');
+            document.getElementById('unlockDesc').textContent = 'Enter your master password to copy this password.';
+            document.getElementById('unlockModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('unlockPassword').focus(), 100);
             return;
         }
-
-        const decrypted = XIMICrypto.decrypt(entry.encryptedPassword, state.masterPassword);
-        if (decrypted) {
-            navigator.clipboard.writeText(decrypted).then(() => {
-                showToast('Password copied to clipboard!', 'success');
-                // Auto-clear clipboard after 30 seconds
-                setTimeout(() => {
-                    navigator.clipboard.writeText('').catch(() => {});
-                }, 30000);
-            }).catch(() => {
-                // Fallback for older browsers
-                const textarea = document.createElement('textarea');
-                textarea.value = decrypted;
-                textarea.style.position = 'fixed';
-                textarea.style.opacity = '0';
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                showToast('Password copied to clipboard!', 'success');
-            });
-        } else {
-            showToast('Failed to decrypt password', 'error');
-        }
+        performCopy(id);
     };
 
-    window.copyUsername = function(id) {
+    function performCopy(id) {
         const entry = state.entries.find(e => e.id === id);
         if (!entry) return;
+        const dec = XIMICrypto.decrypt(entry.encryptedPassword, state.masterPassword);
+        if (dec) {
+            navigator.clipboard.writeText(dec).then(() => {
+                showToast('Password copied!', 'success');
+                setTimeout(() => navigator.clipboard.writeText('').catch(() => {}), 30000);
+            }).catch(() => {
+                const ta = document.createElement('textarea'); ta.value = dec;
+                ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('Password copied!', 'success');
+            });
+        } else { showToast('Decryption failed', 'error'); }
+    }
 
-        navigator.clipboard.writeText(entry.username).then(() => {
-            showToast('Username copied!', 'success');
-        }).catch(() => {
-            const textarea = document.createElement('textarea');
-            textarea.value = entry.username;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showToast('Username copied!', 'success');
+    window.copyUsername = function (id) {
+        const entry = state.entries.find(e => e.id === id);
+        if (!entry) return;
+        navigator.clipboard.writeText(entry.username).then(() => showToast('Username copied!', 'success')).catch(() => {
+            const ta = document.createElement('textarea'); ta.value = entry.username;
+            ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+            document.body.removeChild(ta); showToast('Username copied!', 'success');
         });
     };
 
-    // ========================================
-    // PASSWORD GENERATOR
-    // ========================================
-    window.toggleGenerator = function () {
-        const panel = document.getElementById('generatorPanel');
-        panel.classList.toggle('hidden');
-        if (!panel.classList.contains('hidden')) {
-            generateAndFill();
-        }
-    };
+    // ==================== GENERATOR (MODAL) ====================
+    window.toggleGenerator = function () { document.getElementById('generatorPanel').classList.toggle('hidden'); };
 
     window.generateAndFill = function () {
-        const length = parseInt(document.getElementById('genLength').value);
-        const options = {
+        const len = parseInt(document.getElementById('genLength').value);
+        const opts = {
             uppercase: document.getElementById('genUpper').checked,
             lowercase: document.getElementById('genLower').checked,
             numbers: document.getElementById('genNumbers').checked,
             symbols: document.getElementById('genSymbols').checked
         };
-
-        const password = XIMICrypto.generatePassword(length, options);
-        document.getElementById('generatedPreview').textContent = password;
-        document.getElementById('entryPassword').value = password;
+        const pw = XIMICrypto.generatePassword(len, opts);
+        document.getElementById('generatedPreview').textContent = pw;
+        document.getElementById('entryPassword').value = pw;
         updateModalStrength();
     };
 
-    window.updateLengthDisplay = function () {
-        const val = document.getElementById('genLength').value;
-        document.getElementById('lengthValue').textContent = val;
+    window.updateLengthDisplay = function () { document.getElementById('lengthValue').textContent = document.getElementById('genLength').value; };
+    window.updateModalStrength = function () { updateStrengthIndicator('modalStrength', document.getElementById('entryPassword').value); };
+
+    // ==================== GENERATOR (FULL PAGE) ====================
+    window.regenerateFullPassword = function () {
+        const len = parseInt(document.getElementById('genFullLength').value);
+        const opts = {
+            uppercase: document.getElementById('genFullUpper').checked,
+            lowercase: document.getElementById('genFullLower').checked,
+            numbers: document.getElementById('genFullNumbers').checked,
+            symbols: document.getElementById('genFullSymbols').checked
+        };
+        const pw = XIMICrypto.generatePassword(len, opts);
+        document.getElementById('genFullPreview').textContent = pw;
+        updateStrengthIndicator('genFullStrength', pw);
     };
 
-    window.updateModalStrength = function () {
-        const password = document.getElementById('entryPassword').value;
-        updateStrengthIndicator('modalStrength', password);
+    window.copyGeneratedPassword = function () {
+        const pw = document.getElementById('genFullPreview').textContent;
+        if (!pw || pw.includes('Click Generate')) { showToast('Generate a password first', 'warning'); return; }
+        navigator.clipboard.writeText(pw).then(() => showToast('Password copied!', 'success')).catch(() => {
+            const ta = document.createElement('textarea'); ta.value = pw;
+            ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+            document.body.removeChild(ta); showToast('Password copied!', 'success');
+        });
     };
 
-    // ========================================
-    // SEARCH & FILTER
-    // ========================================
+    // ==================== STRENGTH CHECKER ====================
+    window.checkStrengthLive = function () {
+        const pw = document.getElementById('checkerPassword').value;
+        const result = document.getElementById('checkerResult');
+        const meter = document.getElementById('checkerMeterFill');
+        const label = document.getElementById('checkerLabel');
+        const details = document.getElementById('checkerDetails');
+
+        if (!pw) { result.classList.add('hidden'); return; }
+        result.classList.remove('hidden');
+
+        const s = XIMICrypto.checkPasswordStrength(pw);
+        const pct = Math.min(100, (s.score / 9) * 100);
+
+        const colors = { Weak: '#ef4444', Medium: '#f59e0b', Strong: '#22c55e' };
+        meter.style.width = pct + '%';
+        meter.style.background = colors[s.label] || '#555';
+        label.textContent = s.label;
+        label.style.color = colors[s.label] || '#555';
+
+        const hasLower = /[a-z]/.test(pw);
+        const hasUpper = /[A-Z]/.test(pw);
+        const hasNum = /[0-9]/.test(pw);
+        const hasSym = /[^a-zA-Z0-9]/.test(pw);
+        const hasLen = pw.length >= 12;
+        const hasLong = pw.length >= 16;
+
+        details.innerHTML = `
+            <div class="checker-detail-item"><span class="${hasLen ? 'check' : 'cross'}">${hasLen ? '✅' : '❌'}</span> 12+ characters</div>
+            <div class="checker-detail-item"><span class="${hasLong ? 'check' : 'cross'}">${hasLong ? '✅' : '❌'}</span> 16+ characters</div>
+            <div class="checker-detail-item"><span class="${hasLower ? 'check' : 'cross'}">${hasLower ? '✅' : '❌'}</span> Lowercase</div>
+            <div class="checker-detail-item"><span class="${hasUpper ? 'check' : 'cross'}">${hasUpper ? '✅' : '❌'}</span> Uppercase</div>
+            <div class="checker-detail-item"><span class="${hasNum ? 'check' : 'cross'}">${hasNum ? '✅' : '❌'}</span> Numbers</div>
+            <div class="checker-detail-item"><span class="${hasSym ? 'check' : 'cross'}">${hasSym ? '✅' : '❌'}</span> Symbols</div>
+        `;
+    };
+
+    // ==================== SEARCH ====================
     window.filterEntries = function () {
-        const query = document.getElementById('searchInput').value.toLowerCase().trim();
-        const clearBtn = document.getElementById('searchClear');
-        
-        if (query) {
-            clearBtn.classList.remove('hidden');
-        } else {
-            clearBtn.classList.add('hidden');
-        }
-
-        renderEntries(query);
+        const q = document.getElementById('searchInput').value.toLowerCase().trim();
+        document.getElementById('searchClear').classList.toggle('hidden', !q);
+        renderEntries(q);
     };
 
     window.clearSearch = function () {
@@ -589,614 +476,317 @@
         renderEntries();
     };
 
-    // ========================================
-    // BACKUP SYSTEM
-    // ========================================
-    window.showBackupModal = function () {
-        document.getElementById('backupModal').classList.remove('hidden');
-    };
-
-    window.closeBackupModal = function () {
-        document.getElementById('backupModal').classList.add('hidden');
-    };
+    // ==================== BACKUP ====================
+    window.showBackupModal = function () { document.getElementById('backupModal').classList.remove('hidden'); };
+    window.closeBackupModal = function () { document.getElementById('backupModal').classList.add('hidden'); };
 
     window.exportBackup = function () {
-        if (state.entries.length === 0) {
-            showToast('No passwords to export', 'warning');
-            return;
-        }
-
-        const backupData = {
-            entries: state.entries,
-            masterData: JSON.parse(localStorage.getItem('ximi_master'))
-        };
-
-        const encrypted = XIMICrypto.encryptBackup(backupData, state.masterPassword);
-        if (!encrypted) {
-            showToast('Failed to create backup', 'error');
-            return;
-        }
-
-        const blob = new Blob([JSON.stringify(encrypted, null, 2)], { type: 'application/json' });
+        if (!state.entries.length) { showToast('No passwords to export', 'warning'); return; }
+        const enc = XIMICrypto.encryptBackup({ entries: state.entries, masterData: JSON.parse(localStorage.getItem('ximi_master')) }, state.masterPassword);
+        if (!enc) { showToast('Backup failed', 'error'); return; }
+        const blob = new Blob([JSON.stringify(enc, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `ximi-backup-${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        showToast('Backup exported successfully!', 'success');
-        closeBackupModal();
+        a.href = url; a.download = `ximi-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        showToast('Backup exported!', 'success'); closeBackupModal();
     };
 
-    window.importBackup = function (event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
+    window.importBackup = function (e) {
+        const file = e.target.files[0]; if (!file) return;
         const reader = new FileReader();
-        reader.onload = function (e) {
+        reader.onload = function (ev) {
             try {
-                const backupObj = JSON.parse(e.target.result);
-                const decrypted = XIMICrypto.decryptBackup(backupObj, state.masterPassword);
-
-                if (!decrypted) {
-                    showToast('Failed to decrypt backup. Wrong password or corrupted file.', 'error');
-                    return;
-                }
-
-                if (decrypted.entries && Array.isArray(decrypted.entries)) {
-                    // Merge entries (avoid duplicates by ID)
-                    const existingIds = new Set(state.entries.map(e => e.id));
-                    let imported = 0;
-                    
-                    decrypted.entries.forEach(entry => {
-                        if (!existingIds.has(entry.id)) {
-                            state.entries.push(entry);
-                            imported++;
-                        }
-                    });
-
-                    saveEntries();
-                    renderEntries();
-                    closeBackupModal();
-                    showToast(`Imported ${imported} passwords successfully!`, 'success');
-                } else {
-                    showToast('Invalid backup format', 'error');
-                }
-            } catch (err) {
-                console.error('Import error:', err);
-                showToast('Invalid backup file', 'error');
-            }
+                const obj = JSON.parse(ev.target.result);
+                const dec = XIMICrypto.decryptBackup(obj, state.masterPassword);
+                if (!dec) { showToast('Decryption failed', 'error'); return; }
+                if (dec.entries && Array.isArray(dec.entries)) {
+                    const existing = new Set(state.entries.map(e => e.id));
+                    let count = 0;
+                    dec.entries.forEach(entry => { if (!existing.has(entry.id)) { state.entries.push(entry); count++; } });
+                    saveEntries(); renderEntries(); closeBackupModal();
+                    showToast(`Imported ${count} passwords!`, 'success');
+                } else showToast('Invalid backup', 'error');
+            } catch { showToast('Invalid file', 'error'); }
         };
         reader.readAsText(file);
-
-        // Reset input
-        event.target.value = '';
+        e.target.value = '';
     };
 
-    // ========================================
-    // SETTINGS
-    // ========================================
+    // ==================== SETTINGS ====================
     window.showSettingsModal = function () {
-        // Load current auto-lock time
-        const select = document.getElementById('autoLockTime');
-        if (select) select.value = state.autoLockTime;
-        
-        // Clear password fields
-        document.getElementById('currentMasterPw').value = '';
-        document.getElementById('newMasterPw').value = '';
-        document.getElementById('confirmNewMasterPw').value = '';
+        const s = document.getElementById('autoLockTime'); if (s) s.value = state.autoLockTime;
+        ['currentMasterPw', 'newMasterPw', 'confirmNewMasterPw'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('changePwError').classList.add('hidden');
-        
         document.getElementById('settingsModal').classList.remove('hidden');
     };
-
-    window.closeSettingsModal = function () {
-        document.getElementById('settingsModal').classList.add('hidden');
-    };
+    window.closeSettingsModal = function () { document.getElementById('settingsModal').classList.add('hidden'); };
 
     window.updateAutoLockTime = function () {
-        const val = parseInt(document.getElementById('autoLockTime').value);
-        state.autoLockTime = val;
-        localStorage.setItem('ximi_autolock', val);
-        showToast(`Auto-lock set to ${val} seconds`, 'info');
+        state.autoLockTime = parseInt(document.getElementById('autoLockTime').value);
+        localStorage.setItem('ximi_autolock', state.autoLockTime);
+        showToast(`Auto-lock: ${state.autoLockTime}s`, 'info');
     };
 
     window.changeMasterPassword = function () {
-        const current = document.getElementById('currentMasterPw').value;
-        const newPw = document.getElementById('newMasterPw').value;
-        const confirm = document.getElementById('confirmNewMasterPw').value;
-        const errorEl = document.getElementById('changePwError');
+        const cur = document.getElementById('currentMasterPw').value;
+        const np = document.getElementById('newMasterPw').value;
+        const cf = document.getElementById('confirmNewMasterPw').value;
+        const err = document.getElementById('changePwError');
 
-        if (!current || !newPw || !confirm) {
-            showError(errorEl, 'Please fill in all fields');
-            return;
-        }
+        if (!cur || !np || !cf) { showError(err, 'Fill all fields'); return; }
+        const md = JSON.parse(localStorage.getItem('ximi_master'));
+        if (!XIMICrypto.verifyMasterPassword(cur, md.hash, md.salt)) { showError(err, 'Current password incorrect'); return; }
+        if (np.length < 8) { showError(err, 'Min 8 characters'); return; }
+        if (np !== cf) { showError(err, 'Passwords don\'t match'); return; }
+        if (XIMICrypto.checkPasswordStrength(np).label === 'Weak') { showError(err, 'Choose stronger password'); return; }
 
-        // Verify current password
-        const masterData = JSON.parse(localStorage.getItem('ximi_master'));
-        const isValid = XIMICrypto.verifyMasterPassword(current, masterData.hash, masterData.salt);
-
-        if (!isValid) {
-            showError(errorEl, 'Current password is incorrect');
-            return;
-        }
-
-        if (newPw.length < 8) {
-            showError(errorEl, 'New password must be at least 8 characters');
-            return;
-        }
-
-        if (newPw !== confirm) {
-            showError(errorEl, 'New passwords do not match');
-            return;
-        }
-
-        const strength = XIMICrypto.checkPasswordStrength(newPw);
-        if (strength.label === 'Weak') {
-            showError(errorEl, 'Please choose a stronger password');
-            return;
-        }
-
-        // Re-encrypt all passwords with new master password
-        const reEncryptedEntries = [];
+        const reEnc = [];
         for (const entry of state.entries) {
-            const decrypted = XIMICrypto.decrypt(entry.encryptedPassword, current);
-            if (decrypted) {
-                const newEncrypted = XIMICrypto.encrypt(decrypted, newPw);
-                if (newEncrypted) {
-                    reEncryptedEntries.push({
-                        ...entry,
-                        encryptedPassword: newEncrypted
-                    });
-                } else {
-                    showError(errorEl, 'Failed to re-encrypt passwords');
-                    return;
-                }
-            } else {
-                showError(errorEl, 'Failed to decrypt passwords with current key');
-                return;
-            }
+            const dec = XIMICrypto.decrypt(entry.encryptedPassword, cur);
+            if (!dec) { showError(err, 'Decryption failed'); return; }
+            const enc = XIMICrypto.encrypt(dec, np);
+            if (!enc) { showError(err, 'Re-encryption failed'); return; }
+            reEnc.push({ ...entry, encryptedPassword: enc });
         }
 
-        // Update master password hash
-        const { hash, salt } = XIMICrypto.hashMasterPassword(newPw);
-        masterData.hash = hash;
-        masterData.salt = salt;
-        localStorage.setItem('ximi_master', JSON.stringify(masterData));
-
-        // Update entries
-        state.entries = reEncryptedEntries;
-        state.masterPassword = newPw;
-        saveEntries();
-
-        // Clear fields
-        document.getElementById('currentMasterPw').value = '';
-        document.getElementById('newMasterPw').value = '';
-        document.getElementById('confirmNewMasterPw').value = '';
-        errorEl.classList.add('hidden');
-
-        showToast('Master password changed successfully!', 'success');
-        closeSettingsModal();
+        const { hash, salt } = XIMICrypto.hashMasterPassword(np);
+        md.hash = hash; md.salt = salt;
+        localStorage.setItem('ximi_master', JSON.stringify(md));
+        state.entries = reEnc; state.masterPassword = np; saveEntries();
+        ['currentMasterPw', 'newMasterPw', 'confirmNewMasterPw'].forEach(id => document.getElementById(id).value = '');
+        err.classList.add('hidden');
+        showToast('Master password changed!', 'success'); closeSettingsModal();
     };
 
     window.deleteAllData = function () {
-        if (confirm('⚠️ Are you sure you want to delete ALL data? This cannot be undone!')) {
-            if (confirm('This will delete your master password and all saved passwords. Proceed?')) {
-                localStorage.removeItem('ximi_master');
-                localStorage.removeItem('ximi_entries');
-                localStorage.removeItem('ximi_autolock');
-                localStorage.removeItem('ximi_lockout');
-                
-                state.masterPassword = null;
-                state.entries = [];
-                state.unlockedEntries.clear();
-                stopActivityMonitor();
-
-                closeSettingsModal();
-                showScreen('setupScreen');
-                showToast('All data has been deleted', 'info');
-            }
-        }
+        if (!confirm('⚠️ Delete ALL data? Cannot be undone!')) return;
+        if (!confirm('This deletes EVERYTHING. Proceed?')) return;
+        ['ximi_master', 'ximi_entries', 'ximi_autolock', 'ximi_lockout'].forEach(k => localStorage.removeItem(k));
+        state.masterPassword = null; state.entries = []; state.unlockedEntries.clear();
+        stopActivityMonitor(); closeSettingsModal(); showScreen('setupScreen');
+        showToast('All data deleted', 'info');
     };
 
-    // ========================================
-    // RENDER ENTRIES
-    // ========================================
+    // ==================== RENDER ====================
     function renderEntries(filterQuery = '') {
         const grid = document.getElementById('passwordGrid');
-        const emptyState = document.getElementById('emptyState');
+        const empty = document.getElementById('emptyState');
 
         let filtered = state.entries;
-
         if (filterQuery) {
-            filtered = state.entries.filter(entry =>
-                entry.name.toLowerCase().includes(filterQuery) ||
-                entry.username.toLowerCase().includes(filterQuery) ||
-                (entry.category && entry.category.toLowerCase().includes(filterQuery))
+            filtered = state.entries.filter(e =>
+                e.name.toLowerCase().includes(filterQuery) ||
+                e.username.toLowerCase().includes(filterQuery) ||
+                (e.category && e.category.toLowerCase().includes(filterQuery))
             );
         }
 
-        if (state.entries.length === 0) {
-            emptyState.classList.remove('hidden');
-            grid.classList.add('hidden');
+        if (!state.entries.length) { empty.classList.remove('hidden'); grid.classList.add('hidden'); return; }
+        empty.classList.add('hidden'); grid.classList.remove('hidden');
+
+        if (!filtered.length) {
+            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:40px 20px"><h3 style="color:var(--text-secondary)">No results found</h3><p style="color:var(--text-muted)">Try a different search</p></div>';
             return;
         }
 
-        emptyState.classList.add('hidden');
-        grid.classList.remove('hidden');
+        const sorted = [...filtered].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
 
-        if (filtered.length === 0) {
-            grid.innerHTML = `
-                <div class="empty-state" style="grid-column: 1/-1; padding: 40px 20px;">
-                    <h3 style="color: var(--text-secondary);">No results found</h3>
-                    <p style="color: var(--text-muted);">Try a different search term</p>
-                </div>
-            `;
-            return;
-        }
-
-        // Sort: newest first
-        const sorted = [...filtered].sort((a, b) => 
-            new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
-        );
-
-        grid.innerHTML = sorted.map((entry, index) => {
-            const isUnlocked = state.unlockedEntries.has(entry.id);
-            let displayPassword = '••••••••••••';
-            
-            if (isUnlocked) {
-                const decrypted = XIMICrypto.decrypt(entry.encryptedPassword, state.masterPassword);
-                displayPassword = decrypted || 'Decryption error';
-            }
-
+        grid.innerHTML = sorted.map((entry, i) => {
+            const unlocked = state.unlockedEntries.has(entry.id);
+            let displayPw = '••••••••••••';
+            if (unlocked) { displayPw = XIMICrypto.decrypt(entry.encryptedPassword, state.masterPassword) || 'Error'; }
             const initial = entry.name.charAt(0).toUpperCase();
-            const category = entry.category || 'other';
-            const strengthBadge = getStrengthBadge(entry.strength);
-            const notesHtml = entry.notes ? `
-                <div class="card-notes">
-                    <p class="notes-label">Notes</p>
-                    <p>${escapeHtml(entry.notes)}</p>
-                </div>
-            ` : '';
+            const cat = entry.category || 'other';
+            const badge = getStrengthBadge(entry.strength);
+            const notesHtml = entry.notes ? `<div class="card-notes"><p class="notes-label">Notes</p><p>${escapeHtml(entry.notes)}</p></div>` : '';
 
             return `
-                <div class="password-card ${isUnlocked ? 'unlocked' : ''}" style="animation-delay: ${index * 0.05}s">
-                    <div class="card-header">
-                        <div class="card-info">
-                            <div class="card-icon ${category}">${initial}</div>
-                            <div class="card-details">
-                                <div class="card-name" title="${escapeHtml(entry.name)}">${escapeHtml(entry.name)}</div>
-                                <div class="card-username" title="${escapeHtml(entry.username)}">${escapeHtml(entry.username)}</div>
-                                <div class="card-category">${getCategoryLabel(category)}</div>
-                            </div>
+            <div class="password-card ${unlocked ? 'unlocked' : ''}" style="animation-delay:${i * 0.04}s">
+                <div class="card-header">
+                    <div class="card-info">
+                        <div class="card-icon ${cat}">${initial}</div>
+                        <div class="card-details">
+                            <div class="card-name" title="${escapeHtml(entry.name)}">${escapeHtml(entry.name)}</div>
+                            <div class="card-username" title="${escapeHtml(entry.username)}">${escapeHtml(entry.username)}</div>
+                            <div class="card-category">${getCategoryLabel(cat)}</div>
                         </div>
                     </div>
-                    
-                    <div class="card-password-field">
-                        <span class="password-display ${isUnlocked ? 'visible' : ''}" id="pw-${entry.id}">
-                            ${isUnlocked ? escapeHtml(displayPassword) : displayPassword}
-                        </span>
-                        ${strengthBadge}
-                    </div>
-                    
-                    <div class="card-actions">
-                        ${isUnlocked ? `
-                            <button class="btn btn-lock" onclick="lockEntry('${entry.id}')">
-                                🔒 Lock
-                            </button>
-                            <button class="btn btn-copy" onclick="copyPassword('${entry.id}')">
-                                📋 Copy
-                            </button>
-                        ` : `
-                            <button class="btn btn-unlock" onclick="requestUnlock('${entry.id}')">
-                                🔓 Unlock
-                            </button>
-                            <button class="btn btn-copy" onclick="copyUsername('${entry.id}')" title="Copy username">
-                                👤 Copy
-                            </button>
-                        `}
-                        <button class="btn btn-edit" onclick="editEntry('${entry.id}')">
-                            ✏️ Edit
-                        </button>
-                        <button class="btn btn-delete-card" onclick="showDeleteConfirm('${entry.id}')">
-                            🗑️
-                        </button>
-                    </div>
-                    ${notesHtml}
                 </div>
-            `;
+                <div class="card-password-field">
+                    <span class="password-display ${unlocked ? 'visible' : ''}">${unlocked ? escapeHtml(displayPw) : displayPw}</span>
+                    ${badge}
+                </div>
+                <div class="card-actions">
+                    ${unlocked ? `
+                        <button class="btn btn-lock" onclick="lockEntry('${entry.id}')">🔒 Lock</button>
+                        <button class="btn btn-copy" onclick="copyPassword('${entry.id}')">📋 Copy</button>
+                    ` : `
+                        <button class="btn btn-unlock" onclick="requestUnlock('${entry.id}')">🔓 Unlock</button>
+                        <button class="btn btn-copy" onclick="copyUsername('${entry.id}')" title="Copy username">👤 Copy</button>
+                    `}
+                    <button class="btn btn-edit" onclick="editEntry('${entry.id}')">✏️ Edit</button>
+                    <button class="btn btn-delete-card" onclick="showDeleteConfirm('${entry.id}')">🗑️</button>
+                </div>
+                ${notesHtml}
+            </div>`;
         }).join('');
     }
 
-    function getStrengthBadge(strength) {
-        if (!strength) return '';
-        const classes = {
-            'Weak': 'badge-weak',
-            'Medium': 'badge-medium',
-            'Strong': 'badge-strong'
-        };
-        return `<span class="password-strength-badge ${classes[strength] || ''}">${strength}</span>`;
+    function getStrengthBadge(s) {
+        if (!s) return '';
+        const c = { Weak: 'badge-weak', Medium: 'badge-medium', Strong: 'badge-strong' };
+        return `<span class="password-strength-badge ${c[s] || ''}">${s}</span>`;
     }
 
-    function getCategoryLabel(category) {
-        const labels = {
-            social: 'Social',
-            email: 'Email',
-            finance: 'Finance',
-            shopping: 'Shopping',
-            gaming: 'Gaming',
-            work: 'Work',
-            entertainment: 'Entertainment',
-            other: 'Other'
-        };
-        return labels[category] || 'Other';
+    function getCategoryLabel(c) {
+        return { social: 'Social', email: 'Email', finance: 'Finance', shopping: 'Shopping', gaming: 'Gaming', work: 'Work', entertainment: 'Entertainment', other: 'Other' }[c] || 'Other';
     }
 
     function updateStats() {
-        const total = state.entries.length;
+        const t = state.entries.length;
         let strong = 0, weak = 0;
-        
-        state.entries.forEach(entry => {
-            if (entry.strength === 'Strong') strong++;
-            else if (entry.strength === 'Weak') weak++;
-        });
-
-        const locked = total - state.unlockedEntries.size;
-
-        document.getElementById('totalEntries').textContent = total;
+        state.entries.forEach(e => { if (e.strength === 'Strong') strong++; else if (e.strength === 'Weak') weak++; });
+        document.getElementById('totalEntries').textContent = t;
         document.getElementById('strongCount').textContent = strong;
         document.getElementById('weakCount').textContent = weak;
-        document.getElementById('lockedCount').textContent = Math.max(0, locked);
+        document.getElementById('lockedCount').textContent = Math.max(0, t - state.unlockedEntries.size);
     }
 
-    // ========================================
-    // STRENGTH INDICATOR
-    // ========================================
-    function updateStrengthIndicator(elementId, password) {
-        const container = document.getElementById(elementId);
-        if (!container) return;
-
-        if (!password) {
-            container.innerHTML = '';
-            container.className = 'strength-indicator';
-            return;
-        }
-
-        const result = XIMICrypto.checkPasswordStrength(password);
-        container.className = `strength-indicator ${result.class}`;
-        container.innerHTML = `
-            <div class="strength-fill"></div>
-            <div class="strength-label">${result.label}</div>
-        `;
+    // ==================== STRENGTH UI ====================
+    function updateStrengthIndicator(elId, pw) {
+        const c = document.getElementById(elId); if (!c) return;
+        if (!pw) { c.innerHTML = ''; c.className = 'strength-indicator'; return; }
+        const r = XIMICrypto.checkPasswordStrength(pw);
+        c.className = `strength-indicator ${r.class}`;
+        c.innerHTML = `<div class="strength-fill"></div><div class="strength-label">${r.label}</div>`;
     }
 
-    function clearStrengthIndicator(elementId) {
-        const container = document.getElementById(elementId);
-        if (container) {
-            container.innerHTML = '';
-            container.className = 'strength-indicator';
-        }
+    function clearStrengthIndicator(elId) {
+        const c = document.getElementById(elId); if (c) { c.innerHTML = ''; c.className = 'strength-indicator'; }
     }
 
-    // ========================================
-    // INACTIVITY / AUTO-LOCK
-    // ========================================
+    // ==================== INACTIVITY ====================
     function startActivityMonitor() {
-        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-        events.forEach(event => {
-            document.addEventListener(event, resetInactivityTimer, { passive: true });
-        });
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(ev =>
+            document.addEventListener(ev, resetInactivityTimer, { passive: true })
+        );
         resetInactivityTimer();
     }
 
     function stopActivityMonitor() {
-        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-        events.forEach(event => {
-            document.removeEventListener(event, resetInactivityTimer);
-        });
-        clearTimeout(state.autoLockTimer);
-        clearInterval(state.inactivityCountdown);
-        const bar = document.getElementById('inactivityBar');
-        if (bar) bar.classList.add('hidden');
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(ev =>
+            document.removeEventListener(ev, resetInactivityTimer)
+        );
+        clearTimeout(state.autoLockTimer); clearInterval(state.inactivityCountdown);
+        const bar = document.getElementById('inactivityBar'); if (bar) bar.classList.add('hidden');
     }
 
     function resetInactivityTimer() {
-        clearTimeout(state.autoLockTimer);
-        clearInterval(state.inactivityCountdown);
-        
+        clearTimeout(state.autoLockTimer); clearInterval(state.inactivityCountdown);
         const bar = document.getElementById('inactivityBar');
         const timerEl = document.getElementById('inactivityTimer');
-        
-        if (state.unlockedEntries.size === 0) {
-            if (bar) bar.classList.add('hidden');
-            return;
-        }
 
-        let remaining = state.autoLockTime;
-        if (timerEl) timerEl.textContent = remaining;
-        
-        // Show warning bar in last 10 seconds
-        const showWarningAt = Math.min(10, state.autoLockTime);
-        
+        if (!state.unlockedEntries.size) { if (bar) bar.classList.add('hidden'); return; }
+
+        let rem = state.autoLockTime;
+        if (timerEl) timerEl.textContent = rem;
+        const warn = Math.min(10, state.autoLockTime);
         if (bar) bar.classList.add('hidden');
 
         state.inactivityCountdown = setInterval(() => {
-            remaining--;
-            if (timerEl) timerEl.textContent = remaining;
-            
-            if (remaining <= showWarningAt && bar) {
-                bar.classList.remove('hidden');
-            }
+            rem--;
+            if (timerEl) timerEl.textContent = rem;
+            if (rem <= warn && bar) bar.classList.remove('hidden');
         }, 1000);
 
         state.autoLockTimer = setTimeout(() => {
             clearInterval(state.inactivityCountdown);
             if (bar) bar.classList.add('hidden');
             lockAllPasswords();
-            showToast('Passwords auto-locked due to inactivity', 'warning');
+            showToast('Auto-locked due to inactivity', 'warning');
         }, state.autoLockTime * 1000);
     }
 
-    // ========================================
-    // UI HELPERS
-    // ========================================
+    // ==================== UI HELPERS ====================
     window.togglePasswordVisibility = function (inputId, btn) {
-        const input = document.getElementById(inputId);
-        if (!input) return;
-
-        if (input.type === 'password') {
-            input.type = 'text';
-            btn.innerHTML = `
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                </svg>
-            `;
+        const inp = document.getElementById(inputId); if (!inp) return;
+        if (inp.type === 'password') {
+            inp.type = 'text';
+            btn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
         } else {
-            input.type = 'password';
-            btn.innerHTML = `
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                </svg>
-            `;
+            inp.type = 'password';
+            btn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
         }
     };
 
-    function showError(element, message) {
-        element.textContent = message;
-        element.classList.remove('hidden');
-        element.style.animation = 'none';
-        element.offsetHeight; // Force reflow
-        element.style.animation = 'shake 0.5s ease';
+    function showError(el, msg) {
+        el.textContent = msg; el.classList.remove('hidden');
+        el.style.animation = 'none'; el.offsetHeight; el.style.animation = 'shake 0.5s ease';
     }
 
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-    // ========================================
-    // TOAST NOTIFICATIONS
-    // ========================================
-    function showToast(message, type = 'info') {
-        const container = document.getElementById('toastContainer');
-        
-        const icons = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: 'ℹ️'
-        };
-
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.innerHTML = `
-            <span class="toast-icon">${icons[type] || icons.info}</span>
-            <span class="toast-message">${message}</span>
-        `;
-
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            toast.classList.add('toast-out');
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.parentNode.removeChild(toast);
-                }
-            }, 400);
-        }, 3000);
+    // ==================== TOASTS ====================
+    function showToast(msg, type = 'info') {
+        const c = document.getElementById('toastContainer');
+        const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+        const t = document.createElement('div');
+        t.className = `toast toast-${type}`;
+        t.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span class="toast-message">${msg}</span>`;
+        c.appendChild(t);
+        setTimeout(() => { t.classList.add('toast-out'); setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 400); }, 3000);
     }
 
     window.showToast = showToast;
 
-    // ========================================
-    // PARTICLE BACKGROUND
-    // ========================================
+    // ==================== PARTICLES ====================
     function initParticles() {
         const canvas = document.getElementById('particleCanvas');
         if (!canvas) return;
-
         const ctx = canvas.getContext('2d');
-        let particles = [];
-        let animationId;
+        let particles = [], animId;
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 
-        function createParticle() {
+        function create() {
             return {
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                size: Math.random() * 2 + 0.5,
-                speedX: (Math.random() - 0.5) * 0.3,
-                speedY: (Math.random() - 0.5) * 0.3,
-                opacity: Math.random() * 0.4 + 0.1,
-                hue: Math.random() > 0.5 ? 245 : 190 // Blue or cyan
+                x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                size: Math.random() * 1.8 + 0.4,
+                speedX: (Math.random() - 0.5) * 0.25, speedY: (Math.random() - 0.5) * 0.25,
+                opacity: Math.random() * 0.35 + 0.08,
+                hue: Math.random() > 0.5 ? 250 : 192
             };
         }
 
         function init() {
-            resize();
-            particles = [];
-            const count = Math.min(80, Math.floor((canvas.width * canvas.height) / 15000));
-            for (let i = 0; i < count; i++) {
-                particles.push(createParticle());
-            }
+            resize(); particles = [];
+            const count = Math.min(70, Math.floor((canvas.width * canvas.height) / 18000));
+            for (let i = 0; i < count; i++) particles.push(create());
         }
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             particles.forEach((p, i) => {
-                p.x += p.speedX;
-                p.y += p.speedY;
-
-                if (p.x < 0) p.x = canvas.width;
-                if (p.x > canvas.width) p.x = 0;
-                if (p.y < 0) p.y = canvas.height;
-                if (p.y > canvas.height) p.y = 0;
-
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fillStyle = `hsla(${p.hue}, 80%, 65%, ${p.opacity})`;
-                ctx.fill();
-
-                // Draw connections
+                p.x += p.speedX; p.y += p.speedY;
+                if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${p.hue},80%,65%,${p.opacity})`; ctx.fill();
                 for (let j = i + 1; j < particles.length; j++) {
                     const p2 = particles[j];
-                    const dx = p.x - p2.x;
-                    const dy = p.y - p2.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 120) {
-                        ctx.beginPath();
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.strokeStyle = `hsla(${p.hue}, 80%, 65%, ${0.06 * (1 - dist / 120)})`;
-                        ctx.lineWidth = 0.5;
-                        ctx.stroke();
+                    const d = Math.sqrt((p.x - p2.x) ** 2 + (p.y - p2.y) ** 2);
+                    if (d < 110) {
+                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = `hsla(${p.hue},80%,65%,${0.05 * (1 - d / 110)})`;
+                        ctx.lineWidth = 0.5; ctx.stroke();
                     }
                 }
             });
-
-            animationId = requestAnimationFrame(animate);
+            animId = requestAnimationFrame(animate);
         }
 
-        window.addEventListener('resize', () => {
-            cancelAnimationFrame(animationId);
-            init();
-            animate();
-        });
-
-        init();
-        animate();
+        window.addEventListener('resize', () => { cancelAnimationFrame(animId); init(); animate(); });
+        init(); animate();
     }
-
 })();
