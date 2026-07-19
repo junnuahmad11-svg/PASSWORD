@@ -5,26 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XIMI Password Manager</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 </head>
 <body>
-    <!-- Particle Background -->
     <canvas id="particleCanvas"></canvas>
 
-    <!-- Loading Screen -->
+    <!-- ==================== LOADING SCREEN ==================== -->
     <div id="loadingScreen" class="loading-screen">
         <div class="loading-content">
             <div class="loading-logo">
                 <div class="shield-icon">
-                    <svg viewBox="0 0 64 64" width="80" height="80">
+                    <svg viewBox="0 0 64 64" width="90" height="90">
                         <defs>
                             <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" style="stop-color:#6C63FF"/>
+                                <stop offset="50%" style="stop-color:#a855f7"/>
                                 <stop offset="100%" style="stop-color:#00D4FF"/>
                             </linearGradient>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
                         </defs>
                         <path d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4z" 
-                              fill="none" stroke="url(#shieldGrad)" stroke-width="2.5"/>
+                              fill="none" stroke="url(#shieldGrad)" stroke-width="2.5" filter="url(#glow)"/>
                         <rect x="24" y="26" width="16" height="14" rx="2" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
                         <path d="M26 26v-4a6 6 0 0 1 12 0v4" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
                         <circle cx="32" cy="33" r="2" fill="url(#shieldGrad)"/>
@@ -37,10 +45,11 @@
             <div class="loading-bar">
                 <div class="loading-bar-fill"></div>
             </div>
+            <p class="loading-credit">Created by <span class="credit-name">Mohamad Zubair Ahmed</span></p>
         </div>
     </div>
 
-    <!-- Setup Screen (First Time) -->
+    <!-- ==================== SETUP SCREEN ==================== -->
     <div id="setupScreen" class="screen hidden">
         <div class="auth-container">
             <div class="auth-card">
@@ -56,7 +65,6 @@
                 </div>
                 <h1>Welcome to XIMI</h1>
                 <p class="auth-desc">Create your Master Password to get started. This password will be used to encrypt and protect all your data.</p>
-                
                 <div class="form-group">
                     <label>Create Master Password</label>
                     <div class="password-input-wrapper">
@@ -70,7 +78,6 @@
                     </div>
                     <div id="setupStrength" class="strength-indicator"></div>
                 </div>
-                
                 <div class="form-group">
                     <label>Confirm Master Password</label>
                     <div class="password-input-wrapper">
@@ -83,25 +90,25 @@
                         </button>
                     </div>
                 </div>
-                
                 <div class="form-group">
                     <label>Password Hint (Optional)</label>
                     <input type="text" id="setupHint" placeholder="Something to help you remember">
                 </div>
-                
                 <div id="setupError" class="error-message hidden"></div>
-                
                 <button class="btn btn-primary btn-full" onclick="createMasterPassword()">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     </svg>
                     Create Vault
                 </button>
+                <div class="auth-footer-credit">
+                    <p>Created by <span class="credit-name">Mohamad Zubair Ahmed</span></p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Login Screen -->
+    <!-- ==================== LOGIN SCREEN ==================== -->
     <div id="loginScreen" class="screen hidden">
         <div class="auth-container">
             <div class="auth-card">
@@ -117,7 +124,6 @@
                 </div>
                 <h1>XIMI Vault</h1>
                 <p class="auth-desc">Enter your master password to unlock your vault.</p>
-                
                 <div class="form-group">
                     <label>Master Password</label>
                     <div class="password-input-wrapper">
@@ -131,11 +137,9 @@
                         </button>
                     </div>
                 </div>
-                
                 <div id="loginHint" class="hint-text hidden"></div>
                 <div id="loginError" class="error-message hidden"></div>
                 <div id="loginAttempts" class="attempts-text hidden"></div>
-                
                 <button class="btn btn-primary btn-full" onclick="unlockVault()">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -143,17 +147,24 @@
                     </svg>
                     Unlock Vault
                 </button>
-                
                 <button class="btn btn-ghost btn-full" onclick="showHint()">Show Hint</button>
+                <div class="auth-footer-credit">
+                    <p>Created by <span class="credit-name">Mohamad Zubair Ahmed</span></p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Main App Screen -->
+    <!-- ==================== MAIN APP ==================== -->
     <div id="mainApp" class="screen hidden">
         <!-- Header -->
         <header class="app-header">
             <div class="header-left">
+                <button class="hamburger-btn" id="menuToggle" onclick="toggleSidebar()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
                 <div class="header-logo">
                     <svg viewBox="0 0 64 64" width="32" height="32">
                         <path d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4z" 
@@ -182,19 +193,6 @@
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
                 </button>
-                <button class="header-btn" onclick="showBackupModal()" title="Backup">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                </button>
-                <button class="header-btn" onclick="showSettingsModal()" title="Settings">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                </button>
                 <button class="header-btn btn-lock-vault" onclick="lockVault()" title="Lock Vault">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -205,21 +203,128 @@
             </div>
         </header>
 
+        <!-- Sidebar Menu -->
+        <div id="sidebarOverlay" class="sidebar-overlay hidden" onclick="closeSidebar()"></div>
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <svg viewBox="0 0 64 64" width="36" height="36">
+                        <path d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4z" 
+                              fill="none" stroke="url(#shieldGrad)" stroke-width="2.5"/>
+                        <rect x="24" y="26" width="16" height="14" rx="2" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
+                        <path d="M26 26v-4a6 6 0 0 1 12 0v4" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
+                        <circle cx="32" cy="33" r="2" fill="url(#shieldGrad)"/>
+                    </svg>
+                    <div>
+                        <h2>XIMI</h2>
+                        <p>Password Manager</p>
+                    </div>
+                </div>
+                <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Main</div>
+                <button class="nav-item active" onclick="navigateTo('dashboard')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('addPassword')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="16"/>
+                        <line x1="8" y1="12" x2="16" y2="12"/>
+                    </svg>
+                    <span>Add Password</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('generator')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                    <span>Password Generator</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('strengthChecker')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    <span>Strength Checker</span>
+                </button>
+
+                <div class="nav-section-title">Tools</div>
+                <button class="nav-item" onclick="navigateTo('backup')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <span>Backup & Restore</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('settings')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Settings</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('about')">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span>About</span>
+                </button>
+
+                <div class="nav-section-title">Security</div>
+                <button class="nav-item" onclick="lockAllPasswords(); closeSidebar();">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <span>Lock All Passwords</span>
+                </button>
+                <button class="nav-item nav-item-danger" onclick="lockVault()">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    <span>Lock Vault & Logout</span>
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-footer-credit">
+                    <p>Created by</p>
+                    <p class="credit-name">Mohamad Zubair Ahmed</p>
+                    <p class="credit-version">v1.0.0</p>
+                </div>
+            </div>
+        </aside>
+
         <!-- Stats Bar -->
         <div class="stats-bar">
             <div class="stat-item">
+                <span class="stat-icon">🔐</span>
                 <span class="stat-number" id="totalEntries">0</span>
                 <span class="stat-label">Total</span>
             </div>
             <div class="stat-item">
+                <span class="stat-icon">💪</span>
                 <span class="stat-number" id="strongCount">0</span>
                 <span class="stat-label">Strong</span>
             </div>
             <div class="stat-item">
+                <span class="stat-icon">⚠️</span>
                 <span class="stat-number" id="weakCount">0</span>
                 <span class="stat-label">Weak</span>
             </div>
             <div class="stat-item">
+                <span class="stat-icon">🔒</span>
                 <span class="stat-number" id="lockedCount">0</span>
                 <span class="stat-label">Locked</span>
             </div>
@@ -227,38 +332,305 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="content-header">
-                <h2>Your Passwords</h2>
-                <button class="btn btn-primary" onclick="showAddModal()">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Add Password
-                </button>
-            </div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="empty-state">
-                <div class="empty-icon">
-                    <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="view-section">
+                <div class="content-header">
+                    <h2>Your Passwords</h2>
+                    <button class="btn btn-primary" onclick="showAddModal()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Password
+                    </button>
                 </div>
-                <h3>No passwords saved yet</h3>
-                <p>Add your first password to get started</p>
-                <button class="btn btn-primary" onclick="showAddModal()">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Add First Password
-                </button>
+                <div id="emptyState" class="empty-state">
+                    <div class="empty-icon">
+                        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </div>
+                    <h3>No passwords saved yet</h3>
+                    <p>Add your first password to get started</p>
+                    <button class="btn btn-primary" onclick="showAddModal()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add First Password
+                    </button>
+                </div>
+                <div id="passwordGrid" class="password-grid"></div>
             </div>
 
-            <!-- Password Grid -->
-            <div id="passwordGrid" class="password-grid"></div>
+            <!-- Generator View -->
+            <div id="generatorView" class="view-section hidden">
+                <div class="content-header">
+                    <h2>🔑 Password Generator</h2>
+                </div>
+                <div class="generator-full-card">
+                    <div class="gen-full-preview">
+                        <span id="genFullPreview" class="gen-full-text">Click Generate to create a password</span>
+                        <div class="gen-full-actions">
+                            <button class="btn btn-icon-round" onclick="copyGeneratedPassword()" title="Copy">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                            </button>
+                            <button class="btn btn-icon-round" onclick="regenerateFullPassword()" title="Regenerate">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"/>
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="genFullStrength" class="strength-indicator"></div>
+                    <div class="gen-full-controls">
+                        <div class="gen-control-group">
+                            <label>Password Length: <span id="genFullLengthVal" class="gen-length-val">16</span></label>
+                            <input type="range" id="genFullLength" min="8" max="64" value="16" 
+                                   oninput="document.getElementById('genFullLengthVal').textContent=this.value">
+                        </div>
+                        <div class="gen-options-grid">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="genFullUpper" checked>
+                                <span class="checkmark"></span>
+                                Uppercase (A-Z)
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="genFullLower" checked>
+                                <span class="checkmark"></span>
+                                Lowercase (a-z)
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="genFullNumbers" checked>
+                                <span class="checkmark"></span>
+                                Numbers (0-9)
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="genFullSymbols" checked>
+                                <span class="checkmark"></span>
+                                Symbols (!@#$%)
+                            </label>
+                        </div>
+                        <button class="btn btn-primary btn-full btn-lg" onclick="regenerateFullPassword()">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                            Generate Password
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strength Checker View -->
+            <div id="strengthCheckerView" class="view-section hidden">
+                <div class="content-header">
+                    <h2>🛡️ Password Strength Checker</h2>
+                </div>
+                <div class="checker-card">
+                    <div class="form-group">
+                        <label>Enter a password to check its strength</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="checkerPassword" placeholder="Type password here..." oninput="checkStrengthLive()">
+                            <button class="toggle-visibility" onclick="togglePasswordVisibility('checkerPassword', this)">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="checkerResult" class="checker-result hidden">
+                        <div class="checker-meter">
+                            <div class="checker-meter-fill" id="checkerMeterFill"></div>
+                        </div>
+                        <div class="checker-label" id="checkerLabel"></div>
+                        <div class="checker-details" id="checkerDetails"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About View -->
+            <div id="aboutView" class="view-section hidden">
+                <div class="content-header">
+                    <h2>ℹ️ About XIMI</h2>
+                </div>
+                <div class="about-container">
+                    <!-- Main About Card -->
+                    <div class="about-hero-card">
+                        <div class="about-hero-logo">
+                            <svg viewBox="0 0 64 64" width="80" height="80">
+                                <path d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4z" 
+                                      fill="none" stroke="url(#shieldGrad)" stroke-width="2.5" filter="url(#glow)"/>
+                                <rect x="24" y="26" width="16" height="14" rx="2" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
+                                <path d="M26 26v-4a6 6 0 0 1 12 0v4" fill="none" stroke="url(#shieldGrad)" stroke-width="2"/>
+                                <circle cx="32" cy="33" r="2" fill="url(#shieldGrad)"/>
+                                <line x1="32" y1="35" x2="32" y2="37" stroke="url(#shieldGrad)" stroke-width="1.5"/>
+                            </svg>
+                        </div>
+                        <h1 class="about-title">XIMI Password Manager</h1>
+                        <p class="about-version">Version 1.0.0</p>
+                        <p class="about-tagline">Your passwords, encrypted & secure — always.</p>
+                        <div class="about-badges">
+                            <span class="about-badge">🔐 AES-256 Encryption</span>
+                            <span class="about-badge">🌐 Fully Offline</span>
+                            <span class="about-badge">🛡️ Zero Data Collection</span>
+                            <span class="about-badge">📱 Mobile Ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Developer Card -->
+                    <div class="about-card developer-card">
+                        <div class="about-card-header">
+                            <div class="dev-avatar">
+                                <span>MZA</span>
+                            </div>
+                            <div>
+                                <h3>Mohamad Zubair Ahmed</h3>
+                                <p class="dev-role">App Developer & Creator</p>
+                            </div>
+                        </div>
+                        <div class="about-card-body">
+                            <p>This app is made by <strong>Zubair Ahmed</strong>, the owner and developer of multiple popular apps. Passionate about creating tools that make life easier for everyone.</p>
+                        </div>
+                    </div>
+
+                    <!-- Other Apps Card -->
+                    <div class="about-card">
+                        <h3 class="about-card-title">🚀 Other Apps by Zubair Ahmed</h3>
+                        <div class="other-apps-grid">
+                            <div class="other-app-item">
+                                <div class="app-icon-box app-icon-zuaki">📚</div>
+                                <div class="app-info">
+                                    <h4>Zuaki Learning App</h4>
+                                    <p>Made Easy for JEE & JEE Advanced preparation. A comprehensive learning platform for students.</p>
+                                    <span class="app-collab">Built with <strong>Aitagoni Akhil</strong></span>
+                                </div>
+                            </div>
+                            <div class="other-app-item">
+                                <div class="app-icon-box app-icon-fashion">👗</div>
+                                <div class="app-info">
+                                    <h4>Fashion Designer AI</h4>
+                                    <p>Made specially for girls — an AI-powered fashion design assistant for creating stunning outfits and styles.</p>
+                                    <span class="app-collab">Built with <strong>Aitagoni Akhil</strong></span>
+                                </div>
+                            </div>
+                            <div class="other-app-item">
+                                <div class="app-icon-box app-icon-ximi">🔐</div>
+                                <div class="app-info">
+                                    <h4>XIMI Password Manager</h4>
+                                    <p>This app! A secure, encrypted, premium password manager that works fully offline.</p>
+                                    <span class="app-collab">Built by <strong>Zubair Ahmed</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Request Apps Card -->
+                    <div class="about-card request-card">
+                        <h3 class="about-card-title">📲 Request Custom Apps!</h3>
+                        <p>Want a personalized app for your own use? You can request apps by commenting on our YouTube channels!</p>
+                        <div class="youtube-channels">
+                            <a href="#" class="youtube-channel-btn" onclick="showToast('Search MZA Multiverse on YouTube!', 'info')">
+                                <div class="yt-icon">▶</div>
+                                <div>
+                                    <h4>MZA Multiverse</h4>
+                                    <p>Main Channel — Tech, Apps & More</p>
+                                </div>
+                            </a>
+                            <a href="#" class="youtube-channel-btn" onclick="showToast('Search Zaira Multiverse on YouTube!', 'info')">
+                                <div class="yt-icon">▶</div>
+                                <div>
+                                    <h4>Zaira Multiverse</h4>
+                                    <p>Second Channel — Tutorials & Content</p>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="request-note">
+                            <p>💡 Just comment your app idea with details and we'll try to build it for you!</p>
+                        </div>
+                    </div>
+
+                    <!-- Credits Card -->
+                    <div class="about-card">
+                        <h3 class="about-card-title">🤝 Special Thanks</h3>
+                        <div class="credits-list">
+                            <div class="credit-item">
+                                <div class="credit-avatar">AA</div>
+                                <div>
+                                    <h4>Aitagoni Akhil</h4>
+                                    <p>Co-developer of Zuaki Learning App & Fashion Designer AI. A brilliant friend and coding partner.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Features Card -->
+                    <div class="about-card">
+                        <h3 class="about-card-title">✨ Features</h3>
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <span class="feature-icon">🔒</span>
+                                <span>AES-256 Encryption</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🔑</span>
+                                <span>Password Generator</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🛡️</span>
+                                <span>Strength Checker</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">📋</span>
+                                <span>One-tap Copy</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">💾</span>
+                                <span>Encrypted Backup</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">⏱️</span>
+                                <span>Auto-Lock</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🌙</span>
+                                <span>Dark Theme</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">📱</span>
+                                <span>Mobile Responsive</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">✈️</span>
+                                <span>Works Offline</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🔍</span>
+                                <span>Search & Filter</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🏷️</span>
+                                <span>Categories</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🚫</span>
+                                <span>No Data Collection</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="about-footer">
+                        <p>Made with ❤️ by <strong>Mohamad Zubair Ahmed</strong></p>
+                        <p class="about-footer-sub">© 2024 XIMI Password Manager. All rights reserved.</p>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Inactivity Timer -->
@@ -273,7 +645,7 @@
         </div>
     </div>
 
-    <!-- Add/Edit Modal -->
+    <!-- ==================== ADD/EDIT MODAL ==================== -->
     <div id="addModal" class="modal hidden">
         <div class="modal-overlay" onclick="closeAddModal()"></div>
         <div class="modal-content">
@@ -286,40 +658,32 @@
                     <label>Service Name *</label>
                     <div class="input-with-icon">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                            <path d="M2 17l10 5 10-5"/>
-                            <path d="M2 12l10 5 10-5"/>
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                         </svg>
                         <input type="text" id="entryName" placeholder="e.g., Instagram, Gmail, Netflix">
                     </div>
                 </div>
-                
                 <div class="form-group">
                     <label>Username / Email *</label>
                     <div class="input-with-icon">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                         </svg>
                         <input type="text" id="entryUsername" placeholder="username or email">
                     </div>
                 </div>
-                
                 <div class="form-group">
                     <label>Password *</label>
                     <div class="password-input-wrapper">
                         <input type="password" id="entryPassword" placeholder="Enter or generate password" oninput="updateModalStrength()">
                         <button class="toggle-visibility" onclick="togglePasswordVisibility('entryPassword', this)">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
                         </button>
                     </div>
                     <div id="modalStrength" class="strength-indicator"></div>
                 </div>
-
-                <!-- Password Generator -->
                 <div class="generator-section">
                     <button class="btn btn-secondary btn-full" onclick="toggleGenerator()">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
@@ -330,7 +694,7 @@
                     </button>
                     <div id="generatorPanel" class="generator-panel hidden">
                         <div class="generator-preview">
-                            <span id="generatedPreview">Click generate to create</span>
+                            <span id="generatedPreview">Click generate</span>
                             <button class="btn-icon" onclick="generateAndFill()" title="Regenerate">
                                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="23 4 23 10 17 10"/>
@@ -344,51 +708,29 @@
                                 <input type="range" id="genLength" min="8" max="32" value="16" oninput="updateLengthDisplay()">
                             </div>
                             <div class="generator-options">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="genUpper" checked>
-                                    <span class="checkmark"></span>
-                                    Uppercase (A-Z)
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="genLower" checked>
-                                    <span class="checkmark"></span>
-                                    Lowercase (a-z)
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="genNumbers" checked>
-                                    <span class="checkmark"></span>
-                                    Numbers (0-9)
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="genSymbols" checked>
-                                    <span class="checkmark"></span>
-                                    Symbols (!@#$%)
-                                </label>
+                                <label class="checkbox-label"><input type="checkbox" id="genUpper" checked><span class="checkmark"></span>Uppercase (A-Z)</label>
+                                <label class="checkbox-label"><input type="checkbox" id="genLower" checked><span class="checkmark"></span>Lowercase (a-z)</label>
+                                <label class="checkbox-label"><input type="checkbox" id="genNumbers" checked><span class="checkmark"></span>Numbers (0-9)</label>
+                                <label class="checkbox-label"><input type="checkbox" id="genSymbols" checked><span class="checkmark"></span>Symbols (!@#$%)</label>
                             </div>
-                            <button class="btn btn-accent btn-full" onclick="generateAndFill()">
-                                Use This Password
-                            </button>
+                            <button class="btn btn-accent btn-full" onclick="generateAndFill()">Use This Password</button>
                         </div>
                     </div>
                 </div>
-                
                 <div class="form-group">
                     <label>Website URL (Optional)</label>
                     <div class="input-with-icon">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
                             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                         </svg>
                         <input type="text" id="entryUrl" placeholder="https://example.com">
                     </div>
                 </div>
-                
                 <div class="form-group">
                     <label>Notes (Optional)</label>
                     <textarea id="entryNotes" placeholder="Any additional notes..." rows="3"></textarea>
                 </div>
-                
                 <div class="form-group">
                     <label>Category</label>
                     <select id="entryCategory">
@@ -399,7 +741,7 @@
                         <option value="gaming">Gaming</option>
                         <option value="work">Work</option>
                         <option value="entertainment">Entertainment</option>
-                        <option value="other">Other</option>
+                        <option value="other" selected>Other</option>
                     </select>
                 </div>
             </div>
@@ -408,8 +750,7 @@
                 <button class="btn btn-primary" id="saveEntryBtn" onclick="saveEntry()">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                        <polyline points="17 21 17 13 7 13 7 21"/>
-                        <polyline points="7 3 7 8 15 8"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
                     </svg>
                     Save Entry
                 </button>
@@ -417,16 +758,16 @@
         </div>
     </div>
 
-    <!-- Unlock Modal -->
+    <!-- ==================== UNLOCK MODAL ==================== -->
     <div id="unlockModal" class="modal hidden">
         <div class="modal-overlay" onclick="closeUnlockModal()"></div>
         <div class="modal-content modal-small">
             <div class="modal-header">
-                <h2>🔐 Unlock Password</h2>
+                <h2>🔐 Verify Master Password</h2>
                 <button class="modal-close" onclick="closeUnlockModal()">✕</button>
             </div>
             <div class="modal-body">
-                <p class="unlock-desc">Enter your master password to view this password.</p>
+                <p class="unlock-desc" id="unlockDesc">Enter your master password to continue.</p>
                 <div class="form-group">
                     <label>Master Password</label>
                     <div class="password-input-wrapper">
@@ -434,8 +775,7 @@
                                onkeypress="if(event.key==='Enter')confirmUnlock()">
                         <button class="toggle-visibility" onclick="togglePasswordVisibility('unlockPassword', this)">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
                         </button>
                     </div>
@@ -449,13 +789,13 @@
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                         <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
                     </svg>
-                    Unlock
+                    Confirm
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Backup Modal -->
+    <!-- ==================== BACKUP MODAL ==================== -->
     <div id="backupModal" class="modal hidden">
         <div class="modal-overlay" onclick="closeBackupModal()"></div>
         <div class="modal-content modal-small">
@@ -470,15 +810,12 @@
                     <button class="btn btn-primary btn-full" onclick="exportBackup()">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
+                            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                         </svg>
                         Export Encrypted Backup
                     </button>
                 </div>
-                <div class="backup-divider">
-                    <span>OR</span>
-                </div>
+                <div class="backup-divider"><span>OR</span></div>
                 <div class="backup-section">
                     <h3>Import Backup</h3>
                     <p>Restore passwords from a backup file.</p>
@@ -486,8 +823,7 @@
                     <button class="btn btn-secondary btn-full" onclick="document.getElementById('importFile').click()">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
+                            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                         </svg>
                         Import Backup File
                     </button>
@@ -496,10 +832,10 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
+    <!-- ==================== SETTINGS MODAL ==================== -->
     <div id="settingsModal" class="modal hidden">
         <div class="modal-overlay" onclick="closeSettingsModal()"></div>
-        <div class="modal-content modal-small">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2>⚙️ Settings</h2>
                 <button class="modal-close" onclick="closeSettingsModal()">✕</button>
@@ -519,20 +855,14 @@
                 <div class="settings-group">
                     <h3>Change Master Password</h3>
                     <p>Update your vault's master password</p>
-                    <div class="form-group">
-                        <input type="password" id="currentMasterPw" placeholder="Current master password">
-                    </div>
-                    <div class="form-group">
-                        <input type="password" id="newMasterPw" placeholder="New master password">
-                    </div>
-                    <div class="form-group">
-                        <input type="password" id="confirmNewMasterPw" placeholder="Confirm new password">
-                    </div>
+                    <div class="form-group"><input type="password" id="currentMasterPw" placeholder="Current master password"></div>
+                    <div class="form-group"><input type="password" id="newMasterPw" placeholder="New master password"></div>
+                    <div class="form-group"><input type="password" id="confirmNewMasterPw" placeholder="Confirm new password"></div>
                     <div id="changePwError" class="error-message hidden"></div>
                     <button class="btn btn-secondary btn-full" onclick="changeMasterPassword()">Change Password</button>
                 </div>
                 <div class="settings-group danger-zone">
-                    <h3>Danger Zone</h3>
+                    <h3>⚠️ Danger Zone</h3>
                     <p>This action cannot be undone!</p>
                     <button class="btn btn-danger btn-full" onclick="deleteAllData()">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
@@ -546,7 +876,7 @@
         </div>
     </div>
 
-    <!-- Delete Confirm Modal -->
+    <!-- ==================== DELETE CONFIRM MODAL ==================== -->
     <div id="deleteModal" class="modal hidden">
         <div class="modal-overlay" onclick="closeDeleteModal()"></div>
         <div class="modal-content modal-small">
@@ -559,14 +889,12 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
-                <button class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">
-                    Delete
-                </button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notifications -->
+    <!-- ==================== TOAST ==================== -->
     <div id="toastContainer" class="toast-container"></div>
 
     <script src="crypto.js"></script>
