@@ -795,3 +795,159 @@ body {
     .loading-title { font-size: 2.5rem; }
     .features-grid { grid-template-columns: 1fr; }
 }
+/* ============================================================
+   CREATOR BANNER — Loading Screen (BIG NAME AT TOP)
+   ============================================================ */
+
+.creator-banner {
+    margin-bottom: 40px;
+    text-align: center;
+    animation: creatorFadeIn 1s ease forwards;
+    position: relative;
+    padding: 20px 10px;
+}
+
+.creator-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    margin-bottom: 10px;
+    opacity: 0;
+    animation: creatorSlideDown 0.8s 0.2s ease forwards;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+}
+
+.creator-name {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: 5px;
+    line-height: 1.1;
+    text-transform: uppercase;
+    background: linear-gradient(
+        135deg, 
+        #6C63FF 0%, 
+        #a855f7 25%, 
+        #00D4FF 50%, 
+        #ec4899 75%, 
+        #6C63FF 100%
+    );
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: 
+        creatorSlideDown 0.8s 0.4s ease forwards,
+        creatorGradient 4s ease infinite;
+    opacity: 0;
+    filter: drop-shadow(0 0 30px rgba(108, 99, 255, 0.4));
+    padding: 0 10px;
+}
+
+.creator-line {
+    width: 120px;
+    height: 3px;
+    margin: 16px auto;
+    border-radius: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-cyan), var(--accent-purple), transparent);
+    opacity: 0;
+    animation: creatorSlideDown 0.8s 0.6s ease forwards, creatorLinePulse 3s ease-in-out infinite;
+}
+
+.creator-subtitle {
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    opacity: 0;
+    animation: creatorSlideDown 0.8s 0.8s ease forwards;
+}
+
+/* Creator Animations */
+@keyframes creatorFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes creatorSlideDown {
+    from { 
+        opacity: 0; 
+        transform: translateY(-25px); 
+        filter: blur(8px);
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+        filter: blur(0);
+    }
+}
+
+@keyframes creatorGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes creatorLinePulse {
+    0%, 100% { 
+        width: 120px; 
+        opacity: 0.6;
+        box-shadow: 0 0 10px rgba(108, 99, 255, 0.3);
+    }
+    50% { 
+        width: 200px; 
+        opacity: 1;
+        box-shadow: 0 0 25px rgba(108, 99, 255, 0.6);
+    }
+}
+
+/* ============== RESPONSIVE CREATOR BANNER ============== */
+@media (max-width: 768px) {
+    .creator-name {
+        font-size: 2.2rem;
+        letter-spacing: 3px;
+    }
+    .creator-label {
+        font-size: 0.72rem;
+        letter-spacing: 6px;
+    }
+    .creator-subtitle {
+        font-size: 0.8rem;
+        letter-spacing: 3px;
+    }
+    .creator-banner {
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .creator-name {
+        font-size: 1.6rem;
+        letter-spacing: 2px;
+    }
+    .creator-label {
+        font-size: 0.65rem;
+        letter-spacing: 4px;
+    }
+    .creator-subtitle {
+        font-size: 0.72rem;
+        letter-spacing: 2px;
+    }
+    .creator-banner {
+        margin-bottom: 24px;
+        padding: 14px 6px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .creator-name {
+        font-size: 3.8rem;
+        letter-spacing: 8px;
+    }
+    .creator-label {
+        font-size: 1rem;
+        letter-spacing: 12px;
+    }
+}
